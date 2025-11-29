@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+    database:
+        container_name: holidays-db-compose
+        environment:
+            - MYSQL_ROOT_PASSWORD=1234
+            - MYSQL_DATABASE=holidays
+            - MYSQL_TCP_PORT=3306
+        ports:
+            - '3309:3306'
+        build: ./db
+        volumes:
+            - holidaysdata:/var/lib/mysql
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-p1234']
+            interval: 1m30s
+            timeout: 30s
+            retries: 5
+            start_period: 30s
+
+    backend:
+        container_name: holidays-backend-compose
+        environment:
+            - NODE_ENV=compose
+        ports:
+            - '3020:3000'
+        build: ./backend
+        depends_on:
+            database:
+                condition: service_healthy
+
+    io:
+        container_name: holidays-io-compose
+        ports:
+            - '3022:3004'
+        build: ./io
+
+    frontend:
+        container_name: holidays-frontend-compose
+        ports:
+            - 3012:80
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile.compose
+
+    localstack:
+        container_name: holidays-localstack-compose
+        ports:
+            - 4566:4566
+            - 4510-4559:4510-4559
+        image: localstack/localstack
+        volumes:
+            - s3localdata:/var/lib/localstack
+
+volumes:
+    s3localdata:
+    holidaysdata:
